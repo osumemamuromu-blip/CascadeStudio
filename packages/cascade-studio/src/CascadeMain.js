@@ -649,4 +649,172 @@ translate([0, 0, shaft_h + 2])
   }
 `;
 
+
+/** Simple prompt-to-CAD workspace */
+function installPromptCAD() {
+  if (document.getElementById("promptCADPanel")) return;
+
+  const panel = document.createElement("div");
+  panel.id = "promptCADPanel";
+
+  Object.assign(panel.style, {
+    position: "fixed",
+    zIndex: "9999",
+    top: "70px",
+    left: "10px",
+    right: "10px",
+    maxWidth: "560px",
+    margin: "0 auto",
+    padding: "14px",
+    background: "#17191f",
+    color: "#ffffff",
+    border: "1px solid #454955",
+    borderRadius: "12px",
+    boxShadow: "0 6px 24px #0008",
+    fontFamily: "Arial, sans-serif"
+  });
+
+  panel.innerHTML = `
+    <div style="font-size:17px;font-weight:700;margin-bottom:8px">
+      Malie AI · 3D Builder
+    </div>
+    <div style="font-size:13px;color:#c3c7d1;margin-bottom:10px">
+      Describe a basic 3D object and its dimensions.
+    </div>
+    <input id="promptCADInput"
+      placeholder="e.g. cylinder 40 mm diameter, 100 mm tall"
+      style="box-sizing:border-box;width:100%;padding:12px;
+      border-radius:8px;border:1px solid #555;background:#242832;
+      color:white;font-size:14px;margin-bottom:9px">
+    <button id="promptCADGenerate"
+      style="padding:11px 15px;border:0;border-radius:8px;
+      background:#4779f5;color:white;font-weight:700">
+      Generate 3D Model
+    </button>
+    <button id="promptCADHide"
+      style="padding:11px 12px;margin-left:6px;border:1px solid #555;
+      border-radius:8px;background:#242832;color:white">
+      Hide
+    </button>
+    <div id="promptCADStatus"
+      role="status"
+      style="font-size:13px;margin-top:10px;color:#c3c7d1">
+      Ready
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  const input = panel.querySelector("#promptCADInput");
+  const generate = panel.querySelector("#promptCADGenerate");
+  const status = panel.querySelector("#promptCADStatus");
+
+  panel.querySelector("#promptCADHide").onclick = () => {
+    panel.style.display = "none";
+  };
+
+  function buildCode(description) {
+    const text = description.toLowerCase();
+
+    const numbers = text.match(/\d+(?:\.\d+)?/g);
+    const values = numbers ? numbers.map(Number) : [];
+
+    if (!values.length) {
+      throw new Error("Include dimensions, for example: box 40 30 20 mm.");
+    }
+
+    if (/\b(sphere|ball)\b/.test(text)) {
+      const radius = values[0];
+      return `Sphere(${radius});`;
+    }
+
+    if (/\b(cone)\b/.test(text)) {
+      const radius = values[0];
+      const height = values[1] || radius * 2;
+      return `Cone(${radius}, 0, ${height});`;
+    }
+
+    if (/\b(cylinder|pipe|shaft|rod)\b/.test(text)) {
+      let radius, height;
+
+      if (/\bdiameter\b/.test(text)) {
+        radius = values[0] / 2;
+        height = values[1];
+      } else if (/\bradius\b/.test(text)) {
+        radius = values[0];
+        height = values[1];
+      } else {
+        radius = values[0];
+        height = values[1];
+      }
+
+      if (!height) {
+        throw new Error(
+          "Provide radius and height, or diameter and height."
+        );
+      }
+
+      return `Cylinder(${radius}, ${height});`;
+    }
+
+    if (/\b(box|block|cube|cuboid|rectangular)\b/.test(text)) {
+      const x = values[0];
+      const y = values[1] || x;
+      const z = values[2] || x;
+
+      return `Translate([-${x}/2,-${y}/2,0], Box(${x},${y},${z}));`;
+    }
+
+    throw new Error(
+      "For this first version, try box, cylinder, sphere, or cone."
+    );
+  }
+
+  generate.onclick = async () => {
+    if (!window.CascadeAPI || !window.CascadeAPI.isReady()) {
+      status.textContent = "CAD engine is still loading. Try again shortly.";
+      return;
+    }
+
+    if (window.CascadeAPI.isWorking()) {
+      status.textContent = "A model is already generating. Please wait.";
+      return;
+    }
+
+    generate.disabled = true;
+    status.textContent = "Preparing your model...";
+
+    try {
+      const code = buildCode(input.value.trim());
+      const result = await window.CascadeAPI.runCode(code);
+
+      if (!result.success) {
+        status.textContent =
+          "Model generation failed: " +
+          (result.errors || []).map(e =>
+            typeof e === "string" ? e : e.message || JSON.stringify(e)
+          ).join(" ").slice(0, 350);
+      } else {
+        window.CascadeAPI.fitCamera();
+        status.textContent = "Model generated successfully.";
+      }
+    } catch (error) {
+      status.textContent = error.message || "Could not generate this model.";
+    } finally {
+      generate.disabled = false;
+    }
+  };
+
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter") generate.click();
+  });
+}
+
+// Install after the existing app has started.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", installPromptCAD);
+} else {
+  installPromptCAD();
+}
+
 export { CascadeStudioApp };
