@@ -801,6 +801,60 @@ function installPromptCAD() {
     }, "https://oracle-ai.osumemamuromu.workers.dev");
   }; 
 
+  
+  window.addEventListener("message", async (event) => {
+    if (event.source !== window.parent) return;
+
+    const message = event.data;
+
+    if (
+      !message ||
+      message.type !== "MALIE_CAD_RESULT" ||
+      message.requestId !== window.pendingMalieCadRequestId
+    ) {
+      return;
+    }
+
+    window.pendingMalieCadRequestId = null;
+
+    if (message.error || !message.result?.ok) {
+      status.textContent =
+        message.error ||
+        message.result?.error ||
+        "Malie AI could not generate this model.";
+      generate.disabled = false;
+      return;
+    }
+
+    try {
+      status.textContent = "Rendering your 3D model...";
+
+      const result = await window.CascadeAPI.runCode(
+        message.result.code
+      );
+
+      if (!result.success) {
+        throw new Error(
+          (result.errors || [])
+            .map(e =>
+              typeof e === "string"
+                ? e
+                : e.message || JSON.stringify(e)
+            )
+            .join(" ")
+        );
+      }
+
+      window.CascadeAPI.fitCamera();
+      status.textContent = "Model generated successfully.";
+    } catch (error) {
+      status.textContent =
+        error.message || "Could not render the model.";
+    } finally {
+      generate.disabled = false;
+    }
+  });
+
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") generate.click();
   });
