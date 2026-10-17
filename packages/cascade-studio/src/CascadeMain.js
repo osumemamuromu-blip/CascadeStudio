@@ -770,7 +770,7 @@ function installPromptCAD() {
     );
   }
 
-  generate.onclick = async () => {
+   generate.onclick = async () => {
     if (!window.CascadeAPI || !window.CascadeAPI.isReady()) {
       status.textContent = "CAD engine is still loading. Try again shortly.";
       return;
@@ -781,29 +781,25 @@ function installPromptCAD() {
       return;
     }
 
-    generate.disabled = true;
-    status.textContent = "Preparing your model...";
+    const prompt = input.value.trim();
 
-    try {
-      const code = buildCode(input.value.trim());
-      const result = await window.CascadeAPI.runCode(code);
-
-      if (!result.success) {
-        status.textContent =
-          "Model generation failed: " +
-          (result.errors || []).map(e =>
-            typeof e === "string" ? e : e.message || JSON.stringify(e)
-          ).join(" ").slice(0, 350);
-      } else {
-        window.CascadeAPI.fitCamera();
-        status.textContent = "Model generated successfully.";
-      }
-    } catch (error) {
-      status.textContent = error.message || "Could not generate this model.";
-    } finally {
-      generate.disabled = false;
+    if (!prompt) {
+      status.textContent = "Describe the model you want to create.";
+      return;
     }
-  };
+
+    generate.disabled = true;
+    status.textContent = "Sending your request to Malie AI...";
+
+    const requestId = crypto.randomUUID();
+    window.pendingMalieCadRequestId = requestId;
+
+    window.parent.postMessage({
+      type: "MALIE_CAD_GENERATE",
+      requestId,
+      prompt
+    }, "https://oracle-ai.osumemamuromu.workers.dev");
+  }; 
 
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") generate.click();
