@@ -794,6 +794,17 @@ function installPromptCAD() {
 
     const requestId = crypto.randomUUID();
     window.pendingMalieCadRequestId = requestId;
+     if (requestTimeout !== null) clearTimeout(requestTimeout);
+
+requestTimeout = setTimeout(() => {
+  if (window.pendingMalieCadRequestId !== requestId) return;
+
+  window.pendingMalieCadRequestId = null;
+  requestTimeout = null;
+  status.textContent =
+    "Malie AI did not respond within 60 seconds. Check your connection and try again.";
+  generate.disabled = false;
+}, 60000);
 
     window.parent.postMessage({
       type: "MALIE_CAD_GENERATE",
