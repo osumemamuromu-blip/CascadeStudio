@@ -270,13 +270,15 @@ class CascadeStudioApp {
         params: { guiState: this.gui.state }
       });
 
-      this._dockviewApi.addPanel({
+      
+      const editorPanel = this._dockviewApi.addPanel({
         id: 'codeEditor',
         component: 'codeEditor',
         title: '* Untitled',
         params: { code: codeStr },
         position: { referencePanel: 'cascadeView', direction: 'below' }
       });
+
 
       const consolePanel = this._dockviewApi.addPanel({
         id: 'console',
