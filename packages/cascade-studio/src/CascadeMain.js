@@ -817,6 +817,10 @@ function installPromptCAD() {
     }
 
     window.pendingMalieCadRequestId = null;
+    if (requestTimeout !== null) {
+  clearTimeout(requestTimeout);
+  requestTimeout = null;
+    }
 
     if (message.error || !message.result?.ok) {
       status.textContent =
