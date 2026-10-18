@@ -735,8 +735,9 @@ function installPromptCAD() {
   let requestTimeout = null;
 
   panel.querySelector("#promptCADHide").onclick = () => {
-    panel.style.display = "none";
-  };
+  panel.style.display = "none";
+  restoreCADButton.style.display = "block";
+};
 
   function buildCode(description) {
     const text = description.toLowerCase();
