@@ -286,13 +286,15 @@ class CascadeStudioApp {
       });
 
       // Set proportions after dockview grid initializes
-      setTimeout(() => {
-        try {
-          const h = appBody.offsetHeight;
-          viewPanel.group.api.setSize({ height: Math.floor(h * 0.25) });
-          consolePanel.group.api.setSize({ height: Math.floor(h * 0.05) });
-        } catch (e) { /* ignore */ }
-      }, 50);
+      
+setTimeout(() => {
+  try {
+    const h = appBody.offsetHeight;
+    viewPanel.group.api.setSize({ height: Math.floor(h * 0.78) });
+    consolePanel.group.api.setSize({ height: Math.floor(h * 0.05) });
+  } catch (e) { /* ignore */ }
+}, 50);
+
     } else {
       // Desktop: editor left, cascadeView right, console below view
       const editorPanel = this._dockviewApi.addPanel({
