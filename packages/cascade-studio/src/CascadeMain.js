@@ -708,6 +708,7 @@ function installPromptCAD() {
   const input = panel.querySelector("#promptCADInput");
   const generate = panel.querySelector("#promptCADGenerate");
   const status = panel.querySelector("#promptCADStatus");
+  let requestTimeout = null;
 
   panel.querySelector("#promptCADHide").onclick = () => {
     panel.style.display = "none";
