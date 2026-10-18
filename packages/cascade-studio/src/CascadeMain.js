@@ -289,13 +289,48 @@ class CascadeStudioApp {
 
       // Set proportions after dockview grid initializes
       
-setTimeout(() => {
-  try {
-    const h = appBody.offsetHeight;
-    viewPanel.group.api.setSize({ height: Math.floor(h * 0.78) });
-    consolePanel.group.api.setSize({ height: Math.floor(h * 0.05) });
-  } catch (e) { /* ignore */ }
-}, 50);
+
+      // Keep the 3D view prominent and hide code by default on mobile.
+      const codeToggle = document.createElement('button');
+      codeToggle.textContent = 'Show Code';
+
+      Object.assign(codeToggle.style, {
+        position: 'fixed',
+        left: '16px',
+        bottom: '16px',
+        zIndex: '10000',
+        padding: '12px 16px',
+        border: '0',
+        borderRadius: '10px',
+        background: '#242832',
+        color: 'white',
+        fontWeight: '700',
+        cursor: 'pointer'
+      });
+
+      document.body.appendChild(codeToggle);
+
+      let codeVisible = true;
+
+      codeToggle.onclick = () => {
+        codeVisible = !codeVisible;
+        editorPanel.api.setVisible(codeVisible);
+        codeToggle.textContent = codeVisible ? 'Hide Code' : 'Show Code';
+      };
+
+      setTimeout(() => {
+        try {
+          const h = appBody.offsetHeight;
+          viewPanel.group.api.setSize({ height: Math.floor(h * 0.78) });
+          consolePanel.group.api.setSize({ height: Math.floor(h * 0.05) });
+
+          editorPanel.api.setVisible(false);
+          codeVisible = false;
+        } catch (e) {
+          /* ignore */
+        }
+      }, 50);
+
 
     } else {
       // Desktop: editor left, cascadeView right, console below view
