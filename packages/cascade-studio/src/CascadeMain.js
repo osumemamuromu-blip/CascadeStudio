@@ -704,6 +704,30 @@ function installPromptCAD() {
   `;
 
   document.body.appendChild(panel);
+  
+  const restoreCADButton = document.createElement("button");
+  restoreCADButton.textContent = "＋ Open 3D Builder";
+  Object.assign(restoreCADButton.style, {
+    position: "fixed",
+    right: "16px",
+    bottom: "16px",
+    zIndex: "10000",
+    padding: "12px 16px",
+    border: "0",
+    borderRadius: "10px",
+    background: "#4779f5",
+    color: "white",
+    fontWeight: "700",
+    cursor: "pointer",
+    display: "none"
+  });
+  document.body.appendChild(restoreCADButton);
+
+  restoreCADButton.onclick = () => {
+    panel.style.display = "block";
+    restoreCADButton.style.display = "none";
+  };
+
 
   const input = panel.querySelector("#promptCADInput");
   const generate = panel.querySelector("#promptCADGenerate");
