@@ -879,6 +879,7 @@ requestTimeout = setTimeout(() => {
 
   
   window.addEventListener("message", async (event) => {
+    if (event.origin !== "https://oracle-ai.osumemamuromu.workers.dev") return;
     if (event.source !== window.parent) return;
 
     const message = event.data;
