@@ -94,13 +94,10 @@ class CascadeStudioApp {
     this.api = new CascadeAPI(this);
     this.api.install();
 
-    // Mount the Malie prompt panel from the real app entry point (idempotent).
-    installPromptCAD();
-
     // Register OpenSCAD language with Monaco (for syntax highlighting)
     this._openscadMonaco.registerLanguage();
 
-    // Mode toggle handler — save/restore code per mode
+    // Mode toggle handler â€” save/restore code per mode
     this._savedCode = {};
     const modeSelect = document.getElementById('editorMode');
     if (modeSelect) {
@@ -122,7 +119,7 @@ class CascadeStudioApp {
 
     // Initialize the engine (loads worker + WASM), then start the layout
     this.engine.init().then(() => {
-      // The engine is ready — register event handlers and initialize the UI
+      // The engine is ready â€” register event handlers and initialize the UI
 
       // Wire up engine events for GUI controls
       this.gui.registerHandlers(this.engine);
@@ -196,7 +193,7 @@ class CascadeStudioApp {
     this.gui.state = {};
 
     if (projectContent) {
-      // Load from saved project — extract code and state from the serialized layout
+      // Load from saved project â€” extract code and state from the serialized layout
       try {
         let parsed = JSON.parse(projectContent);
         if (parsed._cascadeState) {
@@ -204,7 +201,7 @@ class CascadeStudioApp {
           codeStr = parsed._cascadeState.code || codeStr;
           this.gui.state = parsed._cascadeState.guiState || {};
         } else if (parsed.content || parsed.root) {
-          // Legacy GoldenLayout project format — extract code from componentState
+          // Legacy GoldenLayout project format â€” extract code from componentState
           let code = this._extractLegacyCode(parsed);
           if (code) { codeStr = code; }
         }
@@ -261,7 +258,7 @@ class CascadeStudioApp {
       }
     });
 
-    // Add panels — use vertical stack on mobile, side-by-side on desktop
+    // Add panels â€” use vertical stack on mobile, side-by-side on desktop
     const isMobile = window.innerHeight > window.innerWidth;
 
     if (isMobile) {
@@ -718,7 +715,7 @@ function installPromptCAD() {
 
   panel.innerHTML = `
     <div style="font-size:17px;font-weight:700;margin-bottom:8px">
-      Malie AI · 3D Builder
+      Malie AI Â· 3D Builder
     </div>
     <div style="font-size:13px;color:#c3c7d1;margin-bottom:10px">
       Describe a basic 3D object and its dimensions.
@@ -748,7 +745,7 @@ function installPromptCAD() {
   document.body.appendChild(panel);
   
   const restoreCADButton = document.createElement("button");
-  restoreCADButton.textContent = "＋ Open 3D Builder";
+  restoreCADButton.textContent = "ï¼‹ Open 3D Builder";
   Object.assign(restoreCADButton.style, {
     position: "fixed",
     right: "16px",
@@ -838,64 +835,7 @@ function installPromptCAD() {
     );
   }
 
-  // Origins allowed to host this editor. Add a custom domain here if Malie moves.
-  const PARENT_ORIGINS = ["https://oracle-ai.osumemamuromu.workers.dev"];
-  const REQUEST_TIMEOUT_MS = 60000;
-  let requestTimer = null;
-
-  function getParentOrigin() {
-    try {
-      const ref = document.referrer ? new URL(document.referrer).origin : "";
-      if (PARENT_ORIGINS.includes(ref)) return ref;
-    } catch (e) { /* ignore */ }
-    return PARENT_ORIGINS[0];
-  }
-
-  function finishRequest(message) {
-    clearTimeout(requestTimer);
-    requestTimer = null;
-    window.pendingMalieCadRequestId = null;
-    generate.disabled = false;
-    if (message) status.textContent = message;
-  }
-
-  const MAX_REPAIRS = 2; // must match MAX_CLIENT_REPAIRS in cad.js
-  let currentPrompt = "";
-  let repairAttempt = 0;
-  let lastSpec = null; // the structured design behind the current script (if any)
-
-  function sendRequest(prompt, repair) {
-    const requestId = crypto.randomUUID();
-    window.pendingMalieCadRequestId = requestId;
-
-    clearTimeout(requestTimer);
-    requestTimer = setTimeout(() => {
-      if (window.pendingMalieCadRequestId === requestId) {
-        finishRequest(
-          "Malie AI did not respond. Make sure you are signed in on the Malie " +
-          "page, then try again."
-        );
-      }
-    }, REQUEST_TIMEOUT_MS);
-
-    try {
-      const message = { type: "MALIE_CAD_GENERATE", requestId, prompt };
-      if (repair) message.repair = repair;
-      window.parent.postMessage(message, getParentOrigin());
-    } catch (error) {
-      finishRequest("Could not reach Malie AI: " + (error.message || error));
-    }
-  }
-
-  generate.onclick = async () => {
-    // Opened directly (no parent page): there is no Malie bridge to talk to.
-    if (window.parent === window) {
-      status.textContent =
-        "AI generation only works inside Malie AI (Engineering Drawing). " +
-        "Open this editor from the Malie AI website.";
-      return;
-    }
-
+   generate.onclick = async () => {
     if (!window.CascadeAPI || !window.CascadeAPI.isReady()) {
       status.textContent = "CAD engine is still loading. Try again shortly.";
       return;
@@ -903,11 +843,6 @@ function installPromptCAD() {
 
     if (window.CascadeAPI.isWorking()) {
       status.textContent = "A model is already generating. Please wait.";
-      return;
-    }
-
-    if (window.pendingMalieCadRequestId) {
-      status.textContent = "A request is already in progress. Please wait.";
       return;
     }
 
@@ -920,96 +855,85 @@ function installPromptCAD() {
 
     generate.disabled = true;
     status.textContent = "Sending your request to Malie AI...";
-    currentPrompt = prompt;
-    repairAttempt = 0;
-    lastSpec = null;
-    sendRequest(prompt, null);
-  };
 
-  function errorText(result) {
-    const list = (result && result.errors) || [];
-    return list
-      .map(e => (typeof e === "string" ? e : e.message || JSON.stringify(e)))
-      .join(" ")
-      .slice(0, 600);
-  }
+    const requestId = crypto.randomUUID();
+    window.pendingMalieCadRequestId = requestId;
+     if (requestTimeout !== null) clearTimeout(requestTimeout);
 
+requestTimeout = setTimeout(() => {
+  if (window.pendingMalieCadRequestId !== requestId) return;
+
+  window.pendingMalieCadRequestId = null;
+  requestTimeout = null;
+  status.textContent =
+    "Malie AI did not respond within 60 seconds. Check your connection and try again.";
+  generate.disabled = false;
+}, 60000);
+
+    window.parent.postMessage({
+      type: "MALIE_CAD_GENERATE",
+      requestId,
+      prompt
+    }, "https://oracle-ai.osumemamuromu.workers.dev");
+  }; 
+
+  
   window.addEventListener("message", async (event) => {
+    if (event.origin !== "https://oracle-ai.osumemamuromu.workers.dev") return;
     if (event.source !== window.parent) return;
-    if (!PARENT_ORIGINS.includes(event.origin)) return;
 
     const message = event.data;
 
     if (
       !message ||
       message.type !== "MALIE_CAD_RESULT" ||
-      !message.requestId ||
       message.requestId !== window.pendingMalieCadRequestId
     ) {
       return;
     }
 
-    clearTimeout(requestTimer);
-    requestTimer = null;
     window.pendingMalieCadRequestId = null;
+    if (requestTimeout !== null) {
+  clearTimeout(requestTimeout);
+  requestTimeout = null;
+    }
 
-    if (message.error || !message.result?.ok || typeof message.result.code !== "string") {
-      finishRequest(
+    if (message.error || !message.result?.ok) {
+      status.textContent =
         message.error ||
         message.result?.error ||
-        "Malie AI could not generate this model."
-      );
+        "Malie AI could not generate this model.";
+      generate.disabled = false;
       return;
     }
-
-    const code = message.result.code;
-    lastSpec = message.result.spec || null;
-    const note = message.result.note || "";
-    let failure = "";
 
     try {
-      status.textContent = repairAttempt
-        ? "Rendering the corrected model (attempt " + (repairAttempt + 1) + ")..."
-        : "Building your 3D model...";
+      status.textContent = "Rendering your 3D model...";
 
-      // REAL execution check: the code is run by the Cascade Studio engine.
-      const result = await window.CascadeAPI.runCode(code);
+      const result = await window.CascadeAPI.runCode(
+        message.result.code
+      );
 
-      if (!result || !result.success) {
-        failure = errorText(result) || "The CAD engine rejected the script.";
-      } else {
-        // runCode also returns historySteps [{fnName, lineNumber, shapeCount}].
-        // If the engine reports zero shapes after the last step, nothing was built.
-        const steps = Array.isArray(result.historySteps) ? result.historySteps : [];
-        const last = steps[steps.length - 1];
-        if (last && Number.isFinite(last.shapeCount) && last.shapeCount === 0) {
-          failure = "The script ran but produced no solid (a Boolean may have failed or removed everything).";
-        }
+      if (!result.success) {
+        throw new Error(
+          (result.errors || [])
+            .map(e =>
+              typeof e === "string"
+                ? e
+                : e.message || JSON.stringify(e)
+            )
+            .join(" ")
+        );
       }
+
+      window.CascadeAPI.fitCamera();
+      status.textContent = "Model generated successfully.";
     } catch (error) {
-      failure = String(error?.message || error).slice(0, 600);
-    }
-
-    if (!failure) {
-      try { window.CascadeAPI.fitCamera(); } catch (e) { /* camera is optional */ }
-      finishRequest("Model built successfully." + (note ? " " + note : ""));
-      return;
-    }
-
-    // Failed in the engine: ask Malie AI to repair it using the real error.
-    if (repairAttempt < MAX_REPAIRS) {
-      repairAttempt++;
       status.textContent =
-        "The model failed to build. Asking Malie AI to fix it (" +
-        repairAttempt + " of " + MAX_REPAIRS + ")...";
-      sendRequest(currentPrompt, { code, error: failure, attempt: repairAttempt, spec: lastSpec });
-      return;
+        error.message || "Could not render the model.";
+    } finally {
+      generate.disabled = false;
     }
-
-    finishRequest(
-      "Malie could not build a valid model after " + (MAX_REPAIRS + 1) +
-      " tries. Last error: " + failure + " Try simplifying the description or giving exact dimensions."
-    );
   });
 
   input.addEventListener("keydown", event => {
