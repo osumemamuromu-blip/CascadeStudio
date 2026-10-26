@@ -854,7 +854,7 @@ function installPromptCAD() {
     }
 
     generate.disabled = true;
-    status.textContent = "Sending your request to Malie AI...";
+    status.textContent = "Generating your model. Complex designs can take a few minutes...";
 
     const requestId = crypto.randomUUID();
     window.pendingMalieCadRequestId = requestId;
@@ -866,9 +866,9 @@ requestTimeout = setTimeout(() => {
   window.pendingMalieCadRequestId = null;
   requestTimeout = null;
   status.textContent =
-    "Malie AI is taking longer than expected. Please try again.";
+    "Malie AI did not respond within 4 minutes. Try a simpler description or try again.";
   generate.disabled = false;
-}, 150000);
+}, 240000);
 
     window.parent.postMessage({
       type: "MALIE_CAD_GENERATE",
