@@ -868,7 +868,7 @@ requestTimeout = setTimeout(() => {
   status.textContent =
     "Malie AI did not respond within 4 minutes. Try a simpler description or try again.";
   generate.disabled = false;
-}, 150000);
+}, 800000);
 
     window.parent.postMessage({
       type: "MALIE_CAD_GENERATE",
