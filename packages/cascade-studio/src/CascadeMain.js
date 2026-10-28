@@ -907,33 +907,70 @@ requestTimeout = setTimeout(() => {
       return;
     }
 
-    try {
-      status.textContent = "Rendering your 3D model...";
+    
+try {
+  status.textContent = "Preparing the CAD engine...";
 
-      const result = await window.CascadeAPI.runCode(
-        message.result.code
-      );
+  const api = window.CascadeAPI;
 
-      if (!result.success) {
-        throw new Error(
-          (result.errors || [])
-            .map(e =>
-              typeof e === "string"
-                ? e
-                : e.message || JSON.stringify(e)
-            )
-            .join(" ")
-        );
-      }
+  if (!api || typeof api.runCode !== "function") {
+    throw new Error("Cascade Studio's CAD API is unavailable. Refresh the editor.");
+  }
 
-      window.CascadeAPI.fitCamera();
-      status.textContent = "Model generated successfully.";
-    } catch (error) {
-      status.textContent =
-        error.message || "Could not render the model.";
-    } finally {
-      generate.disabled = false;
-    }
+  // Wait briefly for the CAD engine to finish loading.
+  const readyDeadline = Date.now() + 30000;
+
+  while (!api.isReady() && Date.now() < readyDeadline) {
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+
+  if (!api.isReady()) {
+    throw new Error("The CAD engine did not finish loading. Please refresh and retry.");
+  }
+
+  if (api.isWorking()) {
+    throw new Error("The CAD engine is busy. Please wait before generating another model.");
+  }
+
+  if (
+    typeof message.result.code !== "string" ||
+    !message.result.code.trim() ||
+    message.result.code.length > 20000
+  ) {
+    throw new Error("Malie returned an empty or oversized CAD script.");
+  }
+
+  status.textContent = "Building your 3D geometry...";
+
+  const result = await api.runCode(message.result.code);
+
+  if (!result || !result.success) {
+    const errors = (result?.errors || [])
+      .map(error =>
+        typeof error === "string"
+          ? error
+          : error?.message || JSON.stringify(error)
+      )
+      .filter(Boolean);
+
+    throw new Error(
+      errors.length
+        ? errors.join(" ")
+        : "Cascade Studio could not construct the requested geometry."
+    );
+  }
+
+  api.fitCamera();
+
+  status.textContent =
+    "Model generated successfully. You can now inspect it in the 3D viewport.";
+} catch (error) {
+  status.textContent =
+    error?.message || "Could not render the model. Please try again.";
+} finally {
+  generate.disabled = false;
+}
+
   });
 
   input.addEventListener("keydown", event => {
